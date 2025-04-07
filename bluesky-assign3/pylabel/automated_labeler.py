@@ -32,14 +32,23 @@ class AutomatedLabeler:
         self.domains = {domain.lower(): True for domain in domains_df['Domain'].dropna()}
         words_df = pd.read_csv('./labeler-inputs/t-and-s-words.csv')
         self.words = {word.lower(): True for word in words_df['Word'].dropna()}
-   
+
+        #Read news domains file for news label
+        news_domains_df = pd.read_csv('./labeler-inputs/news-domains.csv')
+        self.news_domains = dict(zip(news_domains_df['Domain'], news_domains_df['Source']))
+
     def moderate_post(self, url: str) -> List[str]:
         """
         Apply moderation to the post specified by the given url
         """
         #Labeling logic
+        labels = []
         #Milestone 2: Apply "t-and-s" label
-        return self.detect_t_and_s(url)
+        labels.extend(self.detect_t_and_s(url))
+        #Milestone 3: Apply "news" label
+        labels.extend(self.detect_news(url))
+
+        return labels
 
     #Milestone 2: Label posts with T&S words and domains
     def find_t_and_s_matches(self, text: str) -> dict:
@@ -64,5 +73,27 @@ class AutomatedLabeler:
         # print(matches)
         if matches['domain_matches'] or matches['word_matches']:
             return [T_AND_S_LABEL]
+        else:
+            return []
+    
+    #Milestone 3: Cite your sources
+    def find_news_matches(self, text: str) -> dict:
+        """Find matches in text from news domain list"""
+        news_matches = [domain for domain in self.news_domains if domain in text]
+        
+        #Return both news domain matches
+        return {
+            'domain_matches': news_matches,
+        }
+    
+    def detect_news(self, url: str) -> List[str]:
+        """Detect news posts and label them using find_news_matches()"""
+        post = post_from_url(self.client, url)
+        post_text = post.value.text.lower() #Grab text and convert to lowercase for matching
+
+        #Find matches
+        matches = self.find_news_matches(post_text)
+        if matches['domain_matches']:
+            return [self.news_domains[matches['domain_matches'][0]]]
         else:
             return []
