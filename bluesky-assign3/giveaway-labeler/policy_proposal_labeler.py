@@ -6,7 +6,8 @@ from atproto import Client
 from dotenv import load_dotenv
 import os 
 import requests
-#from atproto.xrpc_client.models import XrpcError
+import datetime 
+from dateutil import parser
 
 load_dotenv(override=True)
 USERNAME = os.getenv("USERNAME")
@@ -28,7 +29,7 @@ post_urls = df_urls['URL'].dropna().tolist()
 def check_urls_with_safe_browsing(urls):
     body = {
         "client": {
-            "clientId": "your-client-id",  # Just a unique name
+            "clientId": "your-client-id",  #just a unique name
             "clientVersion": "1.0"
         },
         "threatInfo": {
@@ -47,6 +48,37 @@ def check_urls_with_safe_browsing(urls):
         return False
     else:
         return True
+
+def label_as_bot(profile_dict):
+    followers = profile_dict.get("followersCount", 0)
+    follows = profile_dict.get("followsCount", 0)
+    posts = profile_dict.get("postsCount", 0)
+    created_at = profile_dict.get("createdAt", "")
+
+    #account age in days
+    if created_at:
+        account_age_days = (datetime.datetime.now(datetime.timezone.utc) - parser.parse(created_at)).days
+    else:
+        account_age_days = 0
+
+    #features
+    follow_ratio = follows / (followers + 1)
+    posts_per_day = posts / (account_age_days + 1)
+
+    #heuristic rules
+    is_bot = (
+        (followers <= 3 and follows > 300 and account_age_days < 14) or
+        follow_ratio > 30 or
+        posts_per_day > 15
+    )
+
+    return {
+        "is_bot": is_bot,
+        "account_age_days": account_age_days,
+        "follow_ratio": follow_ratio,
+        "posts_per_day": posts_per_day
+    }
+
 
 
 confirmed_matches = []
@@ -73,6 +105,7 @@ for url in post_urls:
         if has_giveaway and has_cta:
             actor_info = client.app.bsky.actor.get_profile({'actor':did})
             actor_info_dict = actor_info.dict()
+            bot_results = label_as_bot(actor_info_dict)
             confirmed_matches.append({
                 "url": url,
                 "did": did,
@@ -81,21 +114,26 @@ for url in post_urls:
                 "followers_count": actor_info_dict.get("followersCount", 0),
                 "follows_count": actor_info_dict.get("followsCount", 0),
                 "posts_count": actor_info_dict.get("postsCount", 0),
-                "created_at": actor_info_dict.get("createdAt", "")
-
+                "created_at": actor_info_dict.get("createdAt", ""),
+                "account_age_days": bot_results["account_age_days"],
+                "follow_ratio": bot_results["follow_ratio"],
+                "posts_per_day": bot_results["posts_per_day"],
+                "bot_flag": bot_results["is_bot"]
             })
 
             time.sleep(1)
-        
-        # Check Google safe browsing API
-        # Use set to prevent duplicates
+
+        df = pd.DataFrame(confirmed_matches)
+
+        #check Google safe browsing API
+        #use set to prevent duplicates
         external_urls = set()
 
-        # Regex check for URLs
+        #regex check for URLs
         found_urls = re.findall(r'https?://\S+', text)
         external_urls.update(found_urls) # update from list to set
 
-        # Check for URLs in facets
+        #check for URLs in facets
         facets = post_value["facets"]
         if facets:
             for f in facets:
@@ -104,7 +142,7 @@ for url in post_urls:
                     if "uri" in feature_dict:
                         external_urls.add(feature_dict["uri"])
         
-        # Check for URLs in embed
+        #check for URLs in embed
         if embed:
             embed_dict = embed.__dict__
             external = embed_dict.get("external")
@@ -112,17 +150,15 @@ for url in post_urls:
                 external_dict = external.__dict__
                 if "uri" in external_dict:
                     external_urls.add(external_dict["uri"])
-        if external_urls:
-            safe = check_urls_with_safe_browsing(list(external_urls))
-            if not safe:
-                print("Found unsafe URL in post:", post)
-
-    #except XrpcError as e:
-      #  print(f"XrpcError processing URL {url}: {e.message}")
-      #  continue
+        #if external_urls:
+            #safe = check_urls_with_safe_browsing(list(external_urls))
+            #if not safe:
+               #print("Found unsafe URL in post:", post)
 
     except Exception as e:
         print(f"Skipping URL (missing or invalid post): {url}")
         continue
 
+num_bots = df["bot_flag"].sum()
 print(f"Confirmed {len(confirmed_matches)} posts with BOTH a giveaway word and a CTA.")
+print(f"{num_bots} accounts flagged by rule-based bot logic.")
