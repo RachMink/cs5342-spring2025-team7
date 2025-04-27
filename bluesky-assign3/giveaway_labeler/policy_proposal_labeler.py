@@ -69,9 +69,8 @@ class AutomatedLabeler:
             safe_links = self.detect_safe_link(post)
             if safe_links is not None:
                 labels.extend(self.detect_safe_link(post))
-            else:
-                #Apply "bot" label
-                labels.extend(self.detect_bot(did))
+            #Apply "bot" label
+            labels.extend(self.detect_bot(did))
         return labels
     
     def detect_giveaway(self, text: str) -> bool:
@@ -136,9 +135,9 @@ class AutomatedLabeler:
             safe = self.check_urls_with_safe_browsing(list(external_urls))
             if not safe:
                print("Found unsafe URL in post:", post)
-               return ["Unsafe Giveaway"]
+               return ["Unsafe Link Giveaway"]
             else:
-                return ["Safe Giveaway"]
+                return ["Safe Link Giveaway"]
 
 
     def label_as_bot(self, profile_dict):
@@ -175,9 +174,9 @@ class AutomatedLabeler:
         actor_info_dict = actor_info.model_dump()
         bot_results = self.label_as_bot(actor_info_dict)
         if bot_results["is_bot"]:
-            return ["Unverified Bot Giveaway"]
+            return ["Likely Bot Giveaway"]
         else:
-            return ["Unverified Giveaway"]
+            return ["Likely Human Giveaway"]
         
 
 # confirmed_matches = []

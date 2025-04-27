@@ -45,8 +45,8 @@ def main():
             num_correct += 1
         else:
             print(f"For {url}, labeler produced {labels}, expected {expected_labels}")
-            if labels != []:
-                label_counter[labels[0]] = label_counter.get(labels[0], 0) + 1
+            for label in labels:
+                label_counter[label] = label_counter.get(label, 0) + 1
         if args.emit_labels and (len(labels) > 0):
             label_post(client, labeler_client, url, labels)
     print(f"The labeler produced {num_correct} correct labels assignments out of {total}")
