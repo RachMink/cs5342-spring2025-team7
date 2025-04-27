@@ -72,10 +72,11 @@ class AutomatedLabeler:
             #Apply "bot" label
             bot_label, bot_results = self.detect_bot(did)
             labels.extend(bot_label)
-            #Store bot results for data analytics
-            bot_results["url"] = url
-            with open("bot_results.jsonl", 'a', encoding='utf-8') as f:
-                f.write(json.dumps(bot_results) + "\n")
+
+            # #Store bot results for data analytics
+            # bot_results["url"] = url
+            # with open("bot_results_test.jsonl", 'a', encoding='utf-8') as f:
+            #     f.write(json.dumps(bot_results) + "\n")
 
         return labels
     
@@ -118,7 +119,7 @@ class AutomatedLabeler:
 
         #regex check for URLs
         found_urls = re.findall(r'https?://\S+', text)
-        external_urls.update(found_urls) # update from list to set
+        external_urls.update(found_urls)
 
         #check for URLs in facets
         facets = post_value["facets"]
@@ -137,6 +138,8 @@ class AutomatedLabeler:
                 external_dict = external.__dict__
                 if "uri" in external_dict:
                     external_urls.add(external_dict["uri"])
+        
+        # If url exists, pass each one through Google safe browsing API
         if external_urls:
             safe = self.check_urls_with_safe_browsing(list(external_urls))
             if not safe:

@@ -5,6 +5,11 @@ import json
 import os
 import ast
 
+import time
+import tracemalloc
+import requests
+import psutil
+
 import pandas as pd
 from atproto import Client
 from dotenv import load_dotenv
@@ -41,7 +46,39 @@ def main():
     label_counter = {}
     for _index, row in urls.iterrows():
         url, expected_labels = row["URL"], row["Labels"]
-        expected_labels
+
+        # # Measure time
+        # start = time.perf_counter()
+        # labels = labeler.moderate_post(url)
+        # elapsed = time.perf_counter() - start
+        # with open("time_measurement.jsonl", 'a', encoding='utf-8') as f:
+        #     f.write(json.dumps(elapsed) + "\n")
+        
+        # # Measure memory
+        # tracemalloc.start()
+        # labels = labeler.moderate_post(url)
+        # current, peak = tracemalloc.get_traced_memory()
+        # tracemalloc.stop()
+        # with open("memory_measurement.jsonl", 'a', encoding='utf-8') as f:
+        #     f.write(json.dumps([current, peak]) + "\n")
+
+        # # Measure network load
+        # def measure_network_for_one_call(url):
+        #     # snapshot before
+        #     net0 = psutil.net_io_counters()
+
+        #     labels = labeler.moderate_post(url)
+
+        #     # snapshot after
+        #     net1 = psutil.net_io_counters()
+        #     sent = net1.bytes_sent - net0.bytes_sent
+        #     recv = net1.bytes_recv - net0.bytes_recv
+
+        #     return sent, recv, labels
+        # sent, recv, labels = measure_network_for_one_call(url)
+        # with open("network_measurement.jsonl", 'a', encoding='utf-8') as f:
+        #     f.write(json.dumps([sent, recv]) + "\n")
+        
         labels = labeler.moderate_post(url)
         if set(labels) == set(expected_labels):
             num_correct += 1
@@ -51,6 +88,10 @@ def main():
                 label_counter[label] = label_counter.get(label, 0) + 1
         if args.emit_labels and (len(labels) > 0):
             label_post(client, labeler_client, url, labels)
+
+        # For analytics
+        with open("labels_test.jsonl", 'a', encoding='utf-8') as f:
+            f.write(json.dumps([labels, expected_labels]) + "\n")
     print(f"The labeler produced {num_correct} correct labels assignments out of {total}")
     print(f"Overall ratio of correct label assignments {num_correct/total}")
     print(label_counter)
