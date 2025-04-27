@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import ast
 
 import pandas as pd
 from atproto import Client
@@ -35,13 +36,14 @@ def main():
 
     labeler = AutomatedLabeler(client, args.labeler_inputs_dir)
 
-    urls = pd.read_csv(args.input_urls)
+    urls = pd.read_csv(args.input_urls, converters={"Labels": ast.literal_eval})
     num_correct, total = 0, urls.shape[0]
     label_counter = {}
     for _index, row in urls.iterrows():
         url, expected_labels = row["URL"], row["Labels"]
+        expected_labels
         labels = labeler.moderate_post(url)
-        if sorted(labels) == sorted(expected_labels):
+        if set(labels) == set(expected_labels):
             num_correct += 1
         else:
             print(f"For {url}, labeler produced {labels}, expected {expected_labels}")
