@@ -85,7 +85,7 @@ def get_giveaway_posts():
     random.shuffle(GIVEAWAY_WORDS)
 
     for keyword in GIVEAWAY_WORDS:
-        response = client.app.bsky.feed.search_posts({'q': keyword, 'limit': 50})
+        response = client.app.bsky.feed.search_posts({'q': keyword, 'limit': 10})
         for post in response.posts:
             user = post.author.handle
             text = post.record.text

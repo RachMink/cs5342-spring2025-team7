@@ -70,7 +70,13 @@ class AutomatedLabeler:
             if safe_links is not None:
                 labels.extend(self.detect_safe_link(post))
             #Apply "bot" label
-            labels.extend(self.detect_bot(did))
+            bot_label, bot_results = self.detect_bot(did)
+            labels.extend(bot_label)
+            #Store bot results for data analytics
+            bot_results["url"] = url
+            with open("bot_results.jsonl", 'a', encoding='utf-8') as f:
+                f.write(json.dumps(bot_results) + "\n")
+
         return labels
     
     def detect_giveaway(self, text: str) -> bool:
@@ -157,16 +163,18 @@ class AutomatedLabeler:
 
         #heuristic rules
         is_bot = (
-            (followers <= 3 and follows > 300 and account_age_days < 14) or
-            follow_ratio > 30 or
-            posts_per_day > 15
+            # (followers <= 3 and follows > 300 and account_age_days < 14) or
+            follow_ratio > 3 or
+            posts_per_day > 10
         )
 
         return {
             "is_bot": is_bot,
             "account_age_days": account_age_days,
             "follow_ratio": follow_ratio,
-            "posts_per_day": posts_per_day
+            "posts_per_day": posts_per_day,
+            "followers": followers,
+            "follows": follows,
         }
     
     def detect_bot(self, did: str):
@@ -174,9 +182,9 @@ class AutomatedLabeler:
         actor_info_dict = actor_info.model_dump()
         bot_results = self.label_as_bot(actor_info_dict)
         if bot_results["is_bot"]:
-            return ["Likely Bot Giveaway"]
+            return ["Likely Bot Giveaway"], bot_results
         else:
-            return ["Likely Human Giveaway"]
+            return ["Likely Human Giveaway"], bot_results
         
 
 # confirmed_matches = []
