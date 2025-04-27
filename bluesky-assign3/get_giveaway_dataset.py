@@ -35,7 +35,15 @@ def get_user_posts(handle, limit=3):
         return []
 
 def get_random_posts():
-    KEYWORDS = ["the", "life", "news", "day", "art", "love", "fun", "you", "post", "time", "and", "world", "game", "travel"]
+    KEYWORDS = [
+        "the", "life", "news", "day", "art", "love", "fun", 
+        "you", "post", "time", "and", "world", "game", "travel",
+        "music", "photo", "food", "coffee", "fashion", "tech", "science",
+        "health", "nature", "sunset", "sunrise", "travel", "code", "design",
+        "film", "video", "story", "humor", "fitness", "yoga", "pets", "cats",
+        "dogs", "meme", "inspiration", "mindfulness", "book", "poetry",
+        "cooking", "sports", "newsfeed", "tutorial", "climate", "culture"
+    ]
     POSTS_TO_COLLECT = 6000
     POSTS_PER_USER = 3
     COLLECTED_POSTS = []
@@ -60,7 +68,7 @@ def get_random_posts():
     return COLLECTED_POSTS
 
 def get_giveaway_posts():
-    df = pd.read_csv("./giveaway-labeler/giveaway-words.csv")
+    df = pd.read_csv("./labeler-inputs/giveaway-words.csv")
 
     # Extract the first column
     words = df['Words'].dropna()
@@ -77,7 +85,7 @@ def get_giveaway_posts():
     random.shuffle(GIVEAWAY_WORDS)
 
     for keyword in GIVEAWAY_WORDS:
-        response = client.app.bsky.feed.search_posts({'q': keyword, 'limit': 10})
+        response = client.app.bsky.feed.search_posts({'q': keyword, 'limit': 50})
         for post in response.posts:
             user = post.author.handle
             text = post.record.text
@@ -107,6 +115,12 @@ def get_giveaway_posts():
     
     return GIVEAWAY_POSTS, CTA_GIVEAWAY_POSTS
 
+def train_test_split_list(items, train_frac=0.6, seed=42):
+    rnd = random.Random(seed)
+    rnd.shuffle(items)
+    cutoff = int(len(items) * train_frac)
+    return items[:cutoff], items[cutoff:]
+
 def main():
     COLLECTED_POSTS = get_random_posts()
     GIVEAWAY_POSTS, CTA_GIVEAWAY_POSTS = get_giveaway_posts()
@@ -117,21 +131,52 @@ def main():
 
     print(f"Collected {len(COMBINED_POSTS)} posts.")
 
+    # Split into test and train sets (60-40 split)
+    with open('bluesky_random_posts.json', 'r') as f:
+        COLLECTED_POSTS = json.load(f)
+
+    with open('bluesky_giveaway_posts.json', 'r') as f:
+        GIVEAWAY_POSTS = json.load(f)
+
+    with open('bluesky_confirmed_giveaway_posts.json', 'r') as f:
+        CTA_GIVEAWAY_POSTS = json.load(f)
+
+    # Remove CTA_GIVEAWAY_POSTS from GIVEAWAY_POSTS so there aren't repeats in the test set
+    confirmed_ids = { post['cid'] for post in CTA_GIVEAWAY_POSTS }
+    remainder = [ post for post in GIVEAWAY_POSTS if post['cid'] not in confirmed_ids ] 
+    remainder_train, remainder_test = train_test_split_list(remainder)
+    confirmed_giveaway_train, confirmed_giveaway_test = train_test_split_list(CTA_GIVEAWAY_POSTS)
+    random_dataset_train, random_dataset_test = train_test_split_list(COLLECTED_POSTS)
+
+    train_set = random_dataset_train + confirmed_giveaway_train + remainder_train
+    test_set = random_dataset_test + confirmed_giveaway_test + remainder_test
+    print("Train set:", len(train_set))
+    print("Test set:", len(test_set))
+
     #Convert to input csv format with a link and a label
-    combined_df = pd.read_json("bluesky_combined_posts.json")
-    confirmed_df = pd.read_json("bluesky_confirmed_giveaway_posts.json")
+    rows = []
+    for post in train_set:
+        uri = post['uri']
+        # uri looks like: "at://did:plc:…/postid"
+        user, post_id = uri.split('/')[2], uri.split('/')[-1]
+        url = f"https://bsky.app/profile/{user}/post/{post_id}"
+        label = ["giveaway"] if post['cid'] in confirmed_ids else []
+        rows.append((url, label))
 
-    confirmed_uris = set(confirmed_df['uri'])
-    output = []
+    df = pd.DataFrame(rows, columns=["URL", "Label"])
+    df.to_csv("input-posts-giveaway-train.csv", index=False)
 
-    for _, row in combined_df.iterrows():
-        uri = row['uri']
-        post_url = f"https://bsky.app/profile/{uri.split('/')[2]}/post/{uri.split('/')[-1]}"
-        label = ["giveaway"] if uri in confirmed_uris else []
-        output.append((post_url, label))
+    rows = []
+    for post in test_set:
+        uri = post['uri']
+        # uri looks like: "at://did:plc:…/postid"
+        user, post_id = uri.split('/')[2], uri.split('/')[-1]
+        url = f"https://bsky.app/profile/{user}/post/{post_id}"
+        label = ["giveaway"] if post['cid'] in confirmed_ids else []
+        rows.append((url, label))
 
-    result_df = pd.DataFrame(output, columns=["URL", "Label"])
-    result_df.to_csv("bluesky_giveaway_labels.csv", index=False)
+    df = pd.DataFrame(rows, columns=["URL", "Label"])
+    df.to_csv("input-posts-giveaway-test.csv", index=False)
 
 if __name__ == "__main__":
     main()
