@@ -183,4 +183,4 @@ class AutomatedLabeler:
             return ["Likely Bot Giveaway"], bot_results
         else:
             return ["Likely Human Giveaway"], bot_results
-        
+

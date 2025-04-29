@@ -66,14 +66,11 @@ def main():
         # def measure_network_for_one_call(url):
         #     # snapshot before
         #     net0 = psutil.net_io_counters()
-
         #     labels = labeler.moderate_post(url)
-
         #     # snapshot after
         #     net1 = psutil.net_io_counters()
         #     sent = net1.bytes_sent - net0.bytes_sent
         #     recv = net1.bytes_recv - net0.bytes_recv
-
         #     return sent, recv, labels
         # sent, recv, labels = measure_network_for_one_call(url)
         # with open("network_measurement.jsonl", 'a', encoding='utf-8') as f:
