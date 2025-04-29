@@ -83,4 +83,4 @@ and produces `time_measurement.jsonl`, `memory_measurement.jsonl` and
 in `data_analysis.ipynb`, and the results are further discussed in our presentation.
 
 ## Final Presentation 
-Checkout our [presentation website]([url](https://giveawayscamsbsky.my.canva.site/)) to read more about our process and findings!
+Checkout our [presentation website](https://giveawayscamsbsky.my.canva.site/) to read more about our process and findings!
