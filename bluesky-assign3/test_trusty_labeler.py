@@ -80,21 +80,21 @@ def main():
         #     f.write(json.dumps([sent, recv]) + "\n")
         
         labels = labeler.moderate_post(url)
+        print(f"For {url}, labeler produced {labels}, expected {expected_labels}")
         if set(labels) == set(expected_labels):
             num_correct += 1
         else:
-            print(f"For {url}, labeler produced {labels}, expected {expected_labels}")
             for label in labels:
                 label_counter[label] = label_counter.get(label, 0) + 1
         if args.emit_labels and (len(labels) > 0):
             label_post(client, labeler_client, url, labels)
 
-        # For analytics
-        with open("labels_test.jsonl", 'a', encoding='utf-8') as f:
-            f.write(json.dumps([labels, expected_labels]) + "\n")
+        # # For analytics
+        # with open("labels_test.jsonl", 'a', encoding='utf-8') as f:
+        #     f.write(json.dumps([labels, expected_labels]) + "\n")
     print(f"The labeler produced {num_correct} correct labels assignments out of {total}")
     print(f"Overall ratio of correct label assignments {num_correct/total}")
-    print(label_counter)
+    # print(label_counter)
 
 
 if __name__ == "__main__":

@@ -60,10 +60,6 @@ class AutomatedLabeler:
         labels = []
         #Check if it is a giveaway
         post_text = post.value.text
-        #Apply "safe link" label
-        # safe_links = self.detect_safe_link(post)
-        # if safe_links is not None:
-        #     labels.extend(self.detect_safe_link(post))
         if self.detect_giveaway(post_text):
             #Apply "safe link" label
             safe_links = self.detect_safe_link(post)
@@ -189,34 +185,3 @@ class AutomatedLabeler:
         else:
             return ["Likely Human Giveaway"], bot_results
         
-
-# confirmed_matches = []
-# confirmed_matches.append({
-#             "url": url,
-#             "did": did,
-#             "rkey": rkey,
-#             "text": text,
-#             "followers_count": actor_info_dict.get("followersCount", 0),
-#             "follows_count": actor_info_dict.get("followsCount", 0),
-#             "posts_count": actor_info_dict.get("postsCount", 0),
-#             "created_at": actor_info_dict.get("createdAt", ""),
-#             "account_age_days": bot_results["account_age_days"],
-#             "follow_ratio": bot_results["follow_ratio"],
-#             "posts_per_day": bot_results["posts_per_day"],
-#             "bot_flag": bot_results["is_bot"]
-#         })
-
-# for url in post_urls:
-
-        # df = pd.DataFrame(confirmed_matches)
-
-        
-
-    # except Exception as e:
-    #     # print(f"Error processing URL {url}: {e}")
-    #     print(f"Skipping URL (missing or invalid post): {url}")
-    #     continue
-
-# num_bots = df["bot_flag"].sum()
-# print(f"Confirmed {len(confirmed_matches)} posts with BOTH a giveaway word and a CTA.")
-# print(f"{num_bots} accounts flagged by rule-based bot logic.")
