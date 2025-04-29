@@ -38,30 +38,29 @@ Overall ratio of correct label assignments 1.0
 
 # Part II documentation
 ## Data collection and labeling
-The input data was generated using get_giveaway_dataset.py, which stores it into
-json format. Next, we cleaned it and formatted it into the input format and 
-labeled all the posts manually which produces manual-label.csv. Then, we used
-clean_data.py to combine our manual labels before separating it into testing 
-and training datasets using a 60/40 split. The datasets can be found at 
-test-data/labels-cleaned-train.csv and test-data/labels-cleaned-test.csv.
+The input data was generated using `get_giveaway_dataset.py`, which stores the posts in
+JSON format. Next, we cleaned the links and formatted them into the proper input format. We then 
+labeled all the posts manually to produce our `manual-label.csv`. We used
+`clean_data.py` to combine our manual labels before separating the dataset into testing 
+and training sets with a 60/40 split. The complete datasets can be found at 
+`test-data/labels-cleaned-train.csv` and `test-data/labels-cleaned-test.csv`.
 
 ## Trusty Labeler design and testing
-policy_proposal_labeler.py holds the core logic of our TrustyLabeler (on bluesky), 
-determining whether to put a label and what type of label to add for each post. 
-The 3 main components are detect_giveaway(), detect_safe_link(), and detect_bot().
+`policy_proposal_labeler.py` holds the core logic of our <b>TrustyLabeler</b> (on bluesky). 
+This is where the logic is that determines whether a given post recieves a label and what type of label to add. The 3 main methods are `detect_giveaway()`, `detect_safe_link()`, and `detect_bot()`.
 
-detect_giveaway() uses labeler-inputs/giveaway-words.csv to perform an initial
+`detect_giveaway()` uses `labeler-inputs/giveaway-words.csv` to perform an initial
 two-layered filtering based on giveaway words and call-to-action words.
 
-detect_safe_link() checks for links in the post text using regex, as well as in
+`detect_safe_link()` checks for links in the post text using regex, as well as in
 the facets and embeds uri. It then uses Google's Safe Browsing API to determine
-if a link is safe or not, and adds ["Unsafe Link Giveaway"] or ["Safe Link Giveaway"]
+if a link is safe or not, and adds `["Unsafe Link Giveaway"]` or `["Safe Link Giveaway"]`
 labels.
 
-detect_bot() uses the follow_ratio and posts_per_day of the account to determine if 
-they are likely a bot or a human, and correspondingly outputs ["Likely Bot Giveaway"]
-or ["Likely Human Giveaway"] labels. The thresholds were determined from the training
-data, and can be seen both in data_analysis.ipynb as well as the presentation.
+`detect_bot()` uses the `follow_ratio` and `posts_per_day` of the account to determine if 
+they are likely a bot or a human, and correspondingly outputs `["Likely Bot Giveaway"]`
+or `["Likely Human Giveaway"]` labels. The thresholds were determined from the training
+data, and can be seen both in `data_analysis.ipynb` as well as the presentation.
 
 The testing script is adapted from the provided testing harness, and can be run 
 in a similar manner:
@@ -71,14 +70,17 @@ in a similar manner:
 ```
 
 ## Analysis of results
-The results can be analyzed using giveaway_labeler/data_analysis.ipynb.
+The results can be analyzed using `giveaway_labeler/data_analysis.ipynb`.
 Accuracy, Precision, Recall and F1 metrics for both the safe link component
 and the bot component can be calculated here. For the overall giveaway 
-component, we did it in the excel sheet after manually labeling the dataset.
+accuracy, we checked via an excel sheet after manually labeling the dataset.
 
 We also measured the efficiency and performance of the code. In our 
-test_trusty_labeler.py, we have commented out the code for measuring time 
-taken, memory and network for each moderate_post() call. These can be run
-and produces time_measurement.jsonl, memory_measurement.jsonl and 
-network_measurement.jsonl respectively. We have also performed data analysis
-in data_analysis.ipynb, and the results are further discussed in our presentation.
+`test_trusty_labeler.py`, we have commented out the code for measuring time 
+taken, memory and network for each `moderate_post()` call. These can be run
+and produces `time_measurement.jsonl`, `memory_measurement.jsonl` and 
+`network_measurement.jsonl` respectively. We have also performed data analysis
+in `data_analysis.ipynb`, and the results are further discussed in our presentation.
+
+## Final Presentation 
+Checkout our [presentation website]([url](https://giveawayscamsbsky.my.canva.site/)) to read more about our process and findings!
