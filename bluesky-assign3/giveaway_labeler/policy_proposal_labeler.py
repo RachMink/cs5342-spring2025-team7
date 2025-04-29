@@ -20,14 +20,11 @@ SAFE_BROWSING_URL = f"https://safebrowsing.googleapis.com/v4/threatMatches:find?
 client = Client()
 client.login(USERNAME, PW)
 
-# df_urls = pd.read_csv("input-posts-giveaway.csv")
-# df_urls = pd.read_csv("bot_test.csv")
-# post_urls = df_urls['URL'].dropna().tolist()
-
 class AutomatedLabeler:
     """Automated labeler implementation"""
 
     def __init__(self, client: Client, input_dir):
+        """Initialize the labeler"""
         self.client = client
 
         #Read files for giveaway label
@@ -36,9 +33,7 @@ class AutomatedLabeler:
         self.cta_words = df_keywords['call-to-action'].dropna().tolist()
 
     def moderate_post(self, url: str) -> List[str]:
-        """
-        Apply moderation to the post specified by the given url
-        """
+        """Apply moderation to the post specified by the given url"""
         #Extract post information
         parts = url.split('/post/')
         did = parts[0].split('/')[-1]
@@ -52,14 +47,13 @@ class AutomatedLabeler:
             })
 
         except Exception as e:
-            # print(f"Error processing URL {url}: {e}")
             print(f"Skipping URL (missing or invalid post): {url}")
             return []
 
         #Labeling logic
         labels = []
-        #Check if it is a giveaway
         post_text = post.value.text
+        #Check if it is a giveaway
         if self.detect_giveaway(post_text):
             #Apply "safe link" label
             safe_links = self.detect_safe_link(post)
@@ -77,11 +71,13 @@ class AutomatedLabeler:
         return labels
     
     def detect_giveaway(self, text: str) -> bool:
+        """Detect giveaway posts using giveaway_words and cta_words"""
         has_giveaway = any(re.search(rf"\b{re.escape(word)}\b", text, re.IGNORECASE) for word in self.giveaway_words)
         has_cta = any(re.search(rf"\b{re.escape(cta)}\b", text, re.IGNORECASE) for cta in self.cta_words)
         return has_giveaway and has_cta
 
     def check_urls_with_safe_browsing(self, urls):
+        """Check URL using Google's Safe Browsing API"""
         body = {
             "client": {
                 "clientId": "your-client-id",  #just a unique name
@@ -105,11 +101,12 @@ class AutomatedLabeler:
             return True
         
     def detect_safe_link(self, post):
+        """Find URL and label it as Safe Link Giveaway or Unsafe Link Giveaway"""
         # Extract post information
         post_value = post["value"]
         embed = post_value["embed"]
         text = post_value["text"]
-        #check Google safe browsing API
+        
         #use set to prevent duplicates
         external_urls = set()
 
@@ -146,6 +143,7 @@ class AutomatedLabeler:
 
 
     def label_as_bot(self, profile_dict):
+        """Check if profile is likely a bot or not using followers, follows, posts, and account age"""
         followers = profile_dict.get("followers_count", 0)
         follows = profile_dict.get("follows_count", 0)
         posts = profile_dict.get("posts_count", 0)
@@ -177,6 +175,7 @@ class AutomatedLabeler:
         }
     
     def detect_bot(self, did: str):
+        """Label as likely bot or likely human"""
         actor_info = client.app.bsky.actor.get_profile({'actor':did})
         actor_info_dict = actor_info.model_dump()
         bot_results = self.label_as_bot(actor_info_dict)
